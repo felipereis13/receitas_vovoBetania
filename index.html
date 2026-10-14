@@ -27,15 +27,24 @@
         >Sempre por perto<br /><strong>Funciona sem internet</strong></span
       >
     </header>
-    <nav class="mode-nav" aria-label="Modo de consulta">
+    <nav class="mode-nav" aria-label="Modo prático e livros">
       <button type="button" id="practical-mode" aria-pressed="true">
-        Todas as receitas</button
-      ><button type="button" id="book-mode" aria-pressed="false">
-        Receitas com itens da geladeira</button
-      ><button type="button" id="vovo-mode" aria-pressed="false">
-        Caderno da vovó
+        Modo prático
       </button>
+      <div class="book-navigation" role="group" aria-labelledby="books-label">
+        <span id="books-label" class="nav-label">Livros</span>
+        <div id="book-tabs"></div>
+        <button type="button" id="add-book">+ Novo livro</button>
+      </div>
     </nav>
+    <div class="library-tools">
+      <p id="library-name">Modo prático · todas as receitas</p>
+      <button type="button" id="back-practical" hidden>
+        ← Voltar ao modo prático
+      </button>
+      <button type="button" id="add-recipe">+ Nova receita</button>
+    </div>
+    <p id="library-status" class="library-status" role="status"></p>
     <main id="conteudo">
       <section id="practical-view" aria-label="Cozinha prática">
         <div class="finder">
@@ -46,8 +55,8 @@
               placeholder="Busque uma receita ou ingrediente…"
               autocomplete="off" /></label
           ><label for="ingredient-filter"
-            >Ingrediente<select id="ingredient-filter">
-              <option value="">Todos os ingredientes</option>
+            >Categoria<select id="ingredient-filter">
+              <option value="">Todas as categorias</option>
             </select></label
           ><label class="favorite-filter"
             ><input type="checkbox" id="favorites-only" /> Só favoritas</label
@@ -58,6 +67,13 @@
             <p id="result-count" role="status"></p>
             <div id="catalog-list"></div>
           </aside>
+          <div id="empty-book" class="cook-reader" tabindex="-1" hidden>
+            <h2 tabindex="-1">Um novo livro para seus sabores</h2>
+            <p>
+              Este livro ainda não tem receitas. Use “Nova receita” para guardar
+              a primeira.
+            </p>
+          </div>
           <article class="cook-reader" id="cook-reader" tabindex="-1">
             <div class="cook-header">
               <div>
@@ -259,6 +275,98 @@
         </div>
       </div>
     </main>
+    <dialog id="book-dialog" aria-labelledby="book-dialog-title">
+      <form id="book-form">
+        <h2 id="book-dialog-title">Novo livro</h2>
+        <p>Escolha um nome. Seu livro vai ganhar uma aba aqui em cima.</p>
+        <label for="book-name">Nome do livro</label>
+        <input
+          id="book-name"
+          name="name"
+          required
+          maxlength="80"
+          placeholder="Ex.: Doces da família"
+          autofocus
+        />
+        <p id="book-error" class="form-error" role="alert"></p>
+        <div class="form-actions">
+          <button type="button" data-close="book-dialog">Cancelar</button>
+          <button type="submit" class="primary">Criar livro</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="recipe-dialog" aria-labelledby="recipe-dialog-title">
+      <form id="recipe-form">
+        <h2 id="recipe-dialog-title">Nova receita</h2>
+        <p>
+          Escreva um ingrediente por linha e uma etapa por linha. A receita já
+          ficará pronta para acompanhar no modo prático.
+        </p>
+        <label for="recipe-book">Livro</label>
+        <select id="recipe-book" name="bookId" required></select>
+        <label for="new-title">Nome da receita</label>
+        <input
+          id="new-title"
+          name="title"
+          required
+          maxlength="160"
+          placeholder="Ex.: Bolo de cenoura"
+        />
+        <div class="form-columns">
+          <label
+            >Categoria (opcional)<input
+              name="category"
+              maxlength="80"
+              placeholder="Ex.: Bolos"
+          /></label>
+          <label
+            >Rendimento (opcional)<input
+              name="serving"
+              maxlength="80"
+              placeholder="Ex.: 8 porções"
+          /></label>
+          <label
+            >Tempo de preparo (opcional)<input
+              name="prep"
+              maxlength="80"
+              placeholder="Ex.: 40 minutos"
+          /></label>
+        </div>
+        <label for="new-ingredients">Ingredientes — um por linha</label>
+        <textarea
+          id="new-ingredients"
+          name="ingredients"
+          rows="5"
+          required
+          maxlength="20000"
+          placeholder="2 cenouras&#10;3 ovos&#10;2 xícaras de farinha"
+        ></textarea>
+        <label for="new-steps">Modo de preparo — uma etapa por linha</label>
+        <textarea
+          id="new-steps"
+          name="steps"
+          rows="5"
+          required
+          maxlength="30000"
+          placeholder="Bata as cenouras com os ovos.&#10;Misture a farinha."
+        ></textarea>
+        <label for="new-notes">Observações (opcional)</label>
+        <textarea
+          id="new-notes"
+          name="notes"
+          rows="2"
+          maxlength="10000"
+        ></textarea>
+        <p class="form-help">
+          Livros e receitas novos ficam salvos neste navegador.
+        </p>
+        <p id="recipe-error" class="form-error" role="alert"></p>
+        <div class="form-actions">
+          <button type="button" data-close="recipe-dialog">Cancelar</button>
+          <button type="submit" class="primary">Salvar e preparar</button>
+        </div>
+      </form>
+    </dialog>
     <noscript
       >Ative o JavaScript do navegador para consultar as receitas.</noscript
     >

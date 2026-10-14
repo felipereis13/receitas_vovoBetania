@@ -142,32 +142,54 @@ const normalize = (text) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+const builtInBooks = [
+  { id: "geladeira", title: "Receitas com itens da geladeira" },
+  { id: "vovo", title: "Caderno da vovó" },
+]
+const libraryKey = "receitas-livros-v1"
+let library = { books: [], recipes: [] }
+let libraryReadable = true
+try {
+  const stored = JSON.parse(localStorage.getItem(libraryKey) || "null")
+  if (stored) {
+    const text = (value) => typeof value === "string" && value.trim().length > 0
+    if (!Array.isArray(stored.books) || !Array.isArray(stored.recipes) ||
+        !stored.books.every((book) => text(book.id) && book.id.startsWith("livro-") && text(book.title)))
+      throw new Error("Livros inválidos")
+    const ids = [...builtInBooks, ...stored.books].map((book) => book.id)
+    if (new Set(ids).size !== ids.length || !stored.recipes.every((recipe) =>
+      text(recipe.id) && recipe.id.startsWith("receita-") && ids.includes(recipe.bookId) &&
+      text(recipe.title) && text(recipe.category) && recipe.source === "custom" &&
+      text(recipe.practical?.serving) && text(recipe.practical?.prep) &&
+      Array.isArray(recipe.practical?.parts) && recipe.practical.parts.every((part) =>
+        ["ingredient", "step", "note"].includes(part.kind) && text(part.text))))
+      throw new Error("Receitas inválidas")
+    library = stored
+  }
+} catch {
+  libraryReadable = false
+  $("library-status").textContent = "Não foi possível ler seus livros salvos. As receitas originais continuam disponíveis; tente abrir no navegador usado para cadastrá-los."
+}
+const allBooks = () => [...builtInBooks, ...library.books]
+function indexRecipe(recipe) {
+  const text = [recipe.title, recipe.category, ...recipe.practical.parts
+    .filter((part) => part.kind === "ingredient")
+    .map((part) => part.text.replace(/\((?:sopa|chá|café)\)/gi, ""))].join(" ")
+  return { ...recipe, search: normalize(text).split(/[^a-z0-9]+/).filter(Boolean) }
+}
 const catalog = [
   ...DATA.chapters.flatMap((chapter, c) =>
     chapter.recipes.map((recipe, r) => ({
-      ...recipe,
-      c,
-      r,
-      id: String(recipe.start),
-      category: chapter.title,
-      source: "book",
+      ...recipe, c, r, id: String(recipe.start), category: chapter.title, source: "book",
     })),
   ),
   ...(DATA.extraRecipes || []),
-].map((recipe) => ({
+  ...library.recipes,
+].map((recipe) => indexRecipe({
   ...recipe,
-  search: normalize(
-    [
-      recipe.title,
-      recipe.category,
-      ...recipe.practical.parts
-        .filter((p) => p.kind === "ingredient")
-        .map((p) => p.text.replace(/\((?:sopa|chá|café)\)/gi, "")),
-    ].join(" "),
-  )
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean),
+  bookId: recipe.bookId || (recipe.source === "family" ? "vovo" : "geladeira"),
 }))
+let selectedBook = ""
 let kitchenRecipe = catalog.find((item) => item.id === "vovo-bolo-betania") || catalog[0]
 let currentMode = "practical"
 let checkInputs = new Map()
@@ -199,61 +221,61 @@ function saveKitchen() {
       "Neste navegador, as marcações ficam disponíveis apenas enquanto o app estiver aberto. Mantenha o app aberto durante o temporizador."
 }
 saveKitchen()
-DATA.chapters.forEach((chapter, i) => {
-  const option = document.createElement("option")
-  option.value = String(i)
-  option.textContent = chapter.title
-  $("ingredient-filter").append(option)
-})
-const familyFilter = document.createElement("option")
-familyFilter.value = "-1"
-familyFilter.textContent = "Vovó Betânia"
-$("ingredient-filter").append(familyFilter)
-
+function renderBooks() {
+  $("book-tabs").replaceChildren()
+  for (const book of allBooks()) {
+    const button = makeButton(book.title, "book-tab")
+    button.setAttribute("aria-pressed", String(book.id === selectedBook))
+    button.addEventListener("click", () => {
+      selectBook(book.id)
+      $("book-tabs").querySelector('[aria-pressed="true"]').focus()
+    })
+    $("book-tabs").append(button)
+  }
+  $("practical-mode").setAttribute("aria-pressed", String(!selectedBook))
+  $("library-name").textContent = allBooks().find((book) => book.id === selectedBook)?.title || "Modo prático · todas as receitas"
+}
+function refreshCategories() {
+  $("ingredient-filter").replaceChildren(new Option("Todas as categorias", ""))
+  const categories = catalog.filter((item) => !selectedBook || item.bookId === selectedBook)
+    .map((item) => item.category)
+  for (const category of new Set(categories))
+    $("ingredient-filter").append(new Option(category, category))
+}
+function selectBook(id, recipe = null) {
+  selectedBook = id
+  $("search").value = ""
+  $("favorites-only").checked = false
+  refreshCategories()
+  renderBooks()
+  const items = catalog.filter((item) => !id || item.bookId === id)
+  const next = recipe || items.find((item) => item.id === kitchenRecipe?.id) || items[0]
+  $("empty-book").hidden = Boolean(next)
+  $("cook-reader").hidden = !next
+  setMode("practical")
+  if (next) chooseRecipe(next, false)
+  else {
+    kitchenRecipe = null
+    setMode("practical")
+    renderCatalog()
+  }
+}
 function setMode(mode) {
   currentMode = mode
-  const practical = mode === "practical"
-  $("practical-view").hidden = !practical
+  $("practical-view").hidden = mode !== "practical"
   $("book-view").hidden = mode !== "book"
   $("vovo-view").hidden = mode !== "vovo"
-  $("vovo-mode").setAttribute("aria-pressed", String(mode === "vovo"))
-  $("collection-author").textContent =
-    mode === "vovo"
-      ? "Memórias e sabores do caderno da Vovó Betânia."
-      : "Escolha uma receita e sinta-se em casa."
-  document.querySelector(".skip").href =
-    mode === "practical" ? "#cook-reader" : mode === "vovo" ? "#bolo-betania" : "#chapter-panel"
-  $("practical-mode").setAttribute("aria-pressed", String(practical))
-  $("book-mode").setAttribute("aria-pressed", String(mode === "book"))
+  $("back-practical").hidden = mode === "practical"
+  document.querySelector(".skip").href = mode === "practical"
+    ? (kitchenRecipe ? "#cook-reader" : "#empty-book")
+    : mode === "vovo" ? "#bolo-betania" : "#chapter-panel"
 }
-$("vovo-mode").addEventListener("click", () => setMode("vovo"))
-$("practical-mode").addEventListener("click", () => {
-  const match =
-    currentMode === "vovo"
-      ? catalog.find((item) => item.id === "vovo-bolo-betania")
-      : currentMode === "book"
-        ? kitchenRecipe.source === "book" &&
-          kitchenRecipe.c === selectedChapter &&
-          kitchenRecipe.r === selectedRecipe
-          ? kitchenRecipe
-          : catalog.find(
-              (item) =>
-                item.source === "book" &&
-                item.c === selectedChapter &&
-                item.r === selectedRecipe,
-            )
-        : kitchenRecipe
-  if (match && match.id !== kitchenRecipe.id) chooseRecipe(match, false)
-  setMode("practical")
-})
-$("book-mode").addEventListener("click", () => {
-  if (kitchenRecipe.source === "book") {
-    selectChapter(kitchenRecipe.c)
-    selectRecipe(kitchenRecipe.r)
-  } else {
-    selectChapter(selectedChapter)
-  }
-  setMode("book")
+$("practical-mode").addEventListener("click", () => selectBook(""))
+$("back-practical").addEventListener("click", () => {
+  const match = currentMode === "book"
+    ? catalog.find((item) => item.source === "book" && item.c === selectedChapter && item.r === selectedRecipe)
+    : catalog.find((item) => item.id === "vovo-bolo-betania")
+  selectBook("", match || kitchenRecipe)
 })
 $("open-original").addEventListener("click", () => {
   if (kitchenRecipe.source === "family") {
@@ -262,20 +284,89 @@ $("open-original").addEventListener("click", () => {
     $("vovo-photo").scrollIntoView({ block: "start" })
     return
   }
+  if (kitchenRecipe.source !== "book") return
   selectChapter(kitchenRecipe.c)
   selectRecipe(kitchenRecipe.r)
   setMode("book")
   title.scrollIntoView({ block: "start" })
 })
 $("vovo-practical").addEventListener("click", () => {
-  $("search").value = ""
-  $("ingredient-filter").value = ""
-  $("favorites-only").checked = false
-  chooseRecipe(
-    catalog.find((item) => item.id === "vovo-bolo-betania"),
-    false,
-  )
-  setMode("practical")
+  selectBook("vovo", catalog.find((item) => item.id === "vovo-bolo-betania"))
+})
+
+// Salva antes de alterar a tela: se faltar espaço, o formulário permanece preenchido.
+function saveLibrary(next, errorId) {
+  try {
+    if (!libraryReadable) throw new Error("Armazenamento indisponível")
+    localStorage.setItem(libraryKey, JSON.stringify(next))
+    library = next
+    return true
+  } catch {
+    $(errorId).textContent = "Não foi possível salvar neste navegador. Seu formulário foi mantido; verifique o espaço e a permissão de armazenamento e tente novamente."
+    return false
+  }
+}
+for (const button of document.querySelectorAll("[data-close]"))
+  button.addEventListener("click", () => $(button.dataset.close).close())
+for (const field of document.querySelectorAll("dialog [required]:not(select)")) {
+  field.addEventListener("input", () => field.setCustomValidity(
+    field.value.trim() ? "" : "Preencha este campo antes de continuar.",
+  ))
+}
+$("add-book").addEventListener("click", () => {
+  $("book-form").reset()
+  $("book-name").setCustomValidity("")
+  $("book-error").textContent = ""
+  $("book-dialog").showModal()
+})
+$("book-form").addEventListener("submit", (event) => {
+  event.preventDefault()
+  const name = $("book-name").value.trim()
+  if (!name) return
+  if (allBooks().some((book) => normalize(book.title.trim()) === normalize(name))) {
+    $("book-error").textContent = "Já existe um livro com esse nome. Escolha outro nome."
+    return
+  }
+  const book = { id: `livro-${crypto.randomUUID()}`, title: name }
+  if (!saveLibrary({ ...library, books: [...library.books, book] }, "book-error")) return
+  $("book-dialog").close()
+  selectBook(book.id)
+  $("library-status").textContent = `Livro “${name}” criado. Agora você pode adicionar a primeira receita.`
+  $("empty-book").querySelector("h2").focus()
+})
+$("add-recipe").addEventListener("click", () => {
+  $("recipe-form").reset()
+  for (const field of $("recipe-form").querySelectorAll("[required]")) field.setCustomValidity("")
+  $("recipe-error").textContent = ""
+  $("recipe-book").replaceChildren()
+  for (const book of allBooks()) $("recipe-book").append(new Option(book.title, book.id))
+  $("recipe-book").value = selectedBook || kitchenRecipe?.bookId || "vovo"
+  $("recipe-dialog").showModal()
+  $("new-title").focus()
+})
+$("recipe-form").addEventListener("submit", (event) => {
+  event.preventDefault()
+  const values = new FormData(event.currentTarget)
+  const value = (name) => values.get(name).trim()
+  const lines = (name, kind) => value(name).split(/\r?\n/).map((text) => text.trim())
+    .filter(Boolean).map((text) => ({ kind, text }))
+  if (!value("title") || !value("ingredients") || !value("steps")) return
+  const recipe = {
+    id: `receita-${crypto.randomUUID()}`, bookId: value("bookId"), source: "custom",
+    title: value("title"), category: value("category") || "Receitas da casa",
+    practical: {
+      serving: value("serving") || "Não informado", prep: value("prep") || "Não informado",
+      parts: [...lines("ingredients", "ingredient"), ...lines("steps", "step"),
+        ...(value("notes") ? [{ kind: "note", text: value("notes") }] : [])],
+    },
+  }
+  if (!allBooks().some((book) => book.id === recipe.bookId)) return
+  if (!saveLibrary({ ...library, recipes: [...library.recipes, recipe] }, "recipe-error")) return
+  catalog.push(indexRecipe(recipe))
+  $("recipe-dialog").close()
+  selectBook(recipe.bookId, catalog[catalog.length - 1])
+  $("library-status").textContent = `Receita “${recipe.title}” salva. Já pode começar o preparo!`
+  $("cook-reader").focus()
 })
 
 function filteredRecipes() {
@@ -285,7 +376,8 @@ function filteredRecipes() {
   const category = $("ingredient-filter").value
   return catalog.filter(
     (item) =>
-      (category === "" || item.c === Number(category)) &&
+      (!selectedBook || item.bookId === selectedBook) &&
+      (category === "" || item.category === category) &&
       (!$("favorites-only").checked ||
         saved.favorites.includes(item.id)) &&
       words.every((word) =>
@@ -302,7 +394,7 @@ function renderCatalog() {
     const button = makeButton("", "catalog-recipe")
     button.setAttribute(
       "aria-current",
-      String(item.id === kitchenRecipe.id),
+      String(item.id === kitchenRecipe?.id),
     )
     const name = document.createElement("strong")
     name.textContent = clean(item.title)
@@ -315,8 +407,9 @@ function renderCatalog() {
   if (!found.length) {
     const p = document.createElement("p")
     p.className = "empty-results"
-    p.textContent =
-      "Nenhuma receita encontrada. Tente outro termo ou retire um filtro."
+    p.textContent = selectedBook && !catalog.some((item) => item.bookId === selectedBook)
+      ? "Nenhuma receita neste livro ainda."
+      : "Nenhuma receita encontrada. Tente outro termo ou retire um filtro."
     $("catalog-list").append(p)
   }
 }
@@ -429,6 +522,10 @@ function renderTimeline(item) {
 }
 function chooseRecipe(item, scroll) {
   kitchenRecipe = item
+  $("cook-reader").hidden = false
+  $("empty-book").hidden = true
+  setMode("practical")
+  $("open-original").hidden = item.source === "custom"
   // Mantém os dois modos de leitura na mesma receita.
   if (item.source === "book") {
     selectedChapter = item.c
@@ -565,6 +662,7 @@ $("timer-toggle").addEventListener("click", async () => {
       return
     }
     timerRemaining = minutes * 60000
+    if (!kitchenRecipe) return
     timerOwner = kitchenRecipe.id
     timerRecipeName = clean(kitchenRecipe.title)
   }
@@ -595,5 +693,4 @@ $("timer-minutes").addEventListener("input", () => {
 })
 setInterval(tickTimer, 250)
 document.addEventListener("visibilitychange", tickTimer)
-chooseRecipe(kitchenRecipe, false)
-setMode("practical")
+selectBook("")
