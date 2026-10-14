@@ -15,7 +15,7 @@ Mantenha a página aberta durante o temporizador.
 
 ## Organização
 
-Há dois livros iniciais: **Caderno da vovó** e **Receitas com itens da geladeira**.
+Há dois livros iniciais: **Caderno de Vovó Betânia** e **Receitas com itens da geladeira**.
 O **Modo prático** reúne as receitas de todos os livros; ele não é um livro.
 As abas na seção **Livros** mostram apenas as receitas do livro escolhido.
 

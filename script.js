@@ -25,8 +25,7 @@ DATA.chapters.forEach((chapter, index) => {
   tab.addEventListener("click", () => selectChapter(index))
   tab.addEventListener("keydown", (event) => {
     let next = index
-    if (event.key === "ArrowRight")
-      next = (index + 1) % DATA.chapters.length
+    if (event.key === "ArrowRight") next = (index + 1) % DATA.chapters.length
     else if (event.key === "ArrowLeft")
       next = (index + DATA.chapters.length - 1) % DATA.chapters.length
     else if (event.key === "Home") next = 0
@@ -144,7 +143,7 @@ const normalize = (text) =>
     .toLowerCase()
 const builtInBooks = [
   { id: "geladeira", title: "Receitas com itens da geladeira" },
-  { id: "vovo", title: "Caderno da vovó" },
+  { id: "vovo", title: "Caderno de Vovó Betânia" },
 ]
 const libraryKey = "receitas-livros-v1"
 let library = { books: [], recipes: [] }
@@ -153,44 +152,83 @@ try {
   const stored = JSON.parse(localStorage.getItem(libraryKey) || "null")
   if (stored) {
     const text = (value) => typeof value === "string" && value.trim().length > 0
-    if (!Array.isArray(stored.books) || !Array.isArray(stored.recipes) ||
-        !stored.books.every((book) => text(book.id) && book.id.startsWith("livro-") && text(book.title)))
+    if (
+      !Array.isArray(stored.books) ||
+      !Array.isArray(stored.recipes) ||
+      !stored.books.every(
+        (book) =>
+          text(book.id) && book.id.startsWith("livro-") && text(book.title),
+      )
+    )
       throw new Error("Livros inválidos")
     const ids = [...builtInBooks, ...stored.books].map((book) => book.id)
-    if (new Set(ids).size !== ids.length || !stored.recipes.every((recipe) =>
-      text(recipe.id) && recipe.id.startsWith("receita-") && ids.includes(recipe.bookId) &&
-      text(recipe.title) && text(recipe.category) && recipe.source === "custom" &&
-      text(recipe.practical?.serving) && text(recipe.practical?.prep) &&
-      Array.isArray(recipe.practical?.parts) && recipe.practical.parts.every((part) =>
-        ["ingredient", "step", "note"].includes(part.kind) && text(part.text))))
+    if (
+      new Set(ids).size !== ids.length ||
+      !stored.recipes.every(
+        (recipe) =>
+          text(recipe.id) &&
+          recipe.id.startsWith("receita-") &&
+          ids.includes(recipe.bookId) &&
+          text(recipe.title) &&
+          text(recipe.category) &&
+          recipe.source === "custom" &&
+          text(recipe.practical?.serving) &&
+          text(recipe.practical?.prep) &&
+          Array.isArray(recipe.practical?.parts) &&
+          recipe.practical.parts.every(
+            (part) =>
+              ["ingredient", "step", "note"].includes(part.kind) &&
+              text(part.text),
+          ),
+      )
+    )
       throw new Error("Receitas inválidas")
     library = stored
   }
 } catch {
   libraryReadable = false
-  $("library-status").textContent = "Não foi possível ler seus livros salvos. As receitas originais continuam disponíveis; tente abrir no navegador usado para cadastrá-los."
+  $("library-status").textContent =
+    "Não foi possível ler seus livros salvos. As receitas originais continuam disponíveis; tente abrir no navegador usado para cadastrá-los."
 }
 const allBooks = () => [...builtInBooks, ...library.books]
 function indexRecipe(recipe) {
-  const text = [recipe.title, recipe.category, ...recipe.practical.parts
-    .filter((part) => part.kind === "ingredient")
-    .map((part) => part.text.replace(/\((?:sopa|chá|café)\)/gi, ""))].join(" ")
-  return { ...recipe, search: normalize(text).split(/[^a-z0-9]+/).filter(Boolean) }
+  const text = [
+    recipe.title,
+    recipe.category,
+    ...recipe.practical.parts
+      .filter((part) => part.kind === "ingredient")
+      .map((part) => part.text.replace(/\((?:sopa|chá|café)\)/gi, "")),
+  ].join(" ")
+  return {
+    ...recipe,
+    search: normalize(text)
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean),
+  }
 }
 const catalog = [
   ...DATA.chapters.flatMap((chapter, c) =>
     chapter.recipes.map((recipe, r) => ({
-      ...recipe, c, r, id: String(recipe.start), category: chapter.title, source: "book",
+      ...recipe,
+      c,
+      r,
+      id: String(recipe.start),
+      category: chapter.title,
+      source: "book",
     })),
   ),
   ...(DATA.extraRecipes || []),
   ...library.recipes,
-].map((recipe) => indexRecipe({
-  ...recipe,
-  bookId: recipe.bookId || (recipe.source === "family" ? "vovo" : "geladeira"),
-}))
+].map((recipe) =>
+  indexRecipe({
+    ...recipe,
+    bookId:
+      recipe.bookId || (recipe.source === "family" ? "vovo" : "geladeira"),
+  }),
+)
 let selectedBook = ""
-let kitchenRecipe = catalog.find((item) => item.id === "vovo-bolo-betania") || catalog[0]
+let kitchenRecipe =
+  catalog.find((item) => item.id === "vovo-bolo-betania") || catalog[0]
 let currentMode = "practical"
 let checkInputs = new Map()
 let timelineItems = new Map()
@@ -233,11 +271,14 @@ function renderBooks() {
     $("book-tabs").append(button)
   }
   $("practical-mode").setAttribute("aria-pressed", String(!selectedBook))
-  $("library-name").textContent = allBooks().find((book) => book.id === selectedBook)?.title || "Modo prático · todas as receitas"
+  $("library-name").textContent =
+    allBooks().find((book) => book.id === selectedBook)?.title ||
+    "Modo prático · todas as receitas"
 }
 function refreshCategories() {
   $("ingredient-filter").replaceChildren(new Option("Todas as categorias", ""))
-  const categories = catalog.filter((item) => !selectedBook || item.bookId === selectedBook)
+  const categories = catalog
+    .filter((item) => !selectedBook || item.bookId === selectedBook)
     .map((item) => item.category)
   for (const category of new Set(categories))
     $("ingredient-filter").append(new Option(category, category))
@@ -249,7 +290,8 @@ function selectBook(id, recipe = null) {
   refreshCategories()
   renderBooks()
   const items = catalog.filter((item) => !id || item.bookId === id)
-  const next = recipe || items.find((item) => item.id === kitchenRecipe?.id) || items[0]
+  const next =
+    recipe || items.find((item) => item.id === kitchenRecipe?.id) || items[0]
   $("empty-book").hidden = Boolean(next)
   $("cook-reader").hidden = !next
   setMode("practical")
@@ -266,15 +308,26 @@ function setMode(mode) {
   $("book-view").hidden = mode !== "book"
   $("vovo-view").hidden = mode !== "vovo"
   $("back-practical").hidden = mode === "practical"
-  document.querySelector(".skip").href = mode === "practical"
-    ? (kitchenRecipe ? "#cook-reader" : "#empty-book")
-    : mode === "vovo" ? "#bolo-betania" : "#chapter-panel"
+  document.querySelector(".skip").href =
+    mode === "practical"
+      ? kitchenRecipe
+        ? "#cook-reader"
+        : "#empty-book"
+      : mode === "vovo"
+        ? "#bolo-betania"
+        : "#chapter-panel"
 }
 $("practical-mode").addEventListener("click", () => selectBook(""))
 $("back-practical").addEventListener("click", () => {
-  const match = currentMode === "book"
-    ? catalog.find((item) => item.source === "book" && item.c === selectedChapter && item.r === selectedRecipe)
-    : catalog.find((item) => item.id === "vovo-bolo-betania")
+  const match =
+    currentMode === "book"
+      ? catalog.find(
+          (item) =>
+            item.source === "book" &&
+            item.c === selectedChapter &&
+            item.r === selectedRecipe,
+        )
+      : catalog.find((item) => item.id === "vovo-bolo-betania")
   selectBook("", match || kitchenRecipe)
 })
 $("open-original").addEventListener("click", () => {
@@ -291,7 +344,10 @@ $("open-original").addEventListener("click", () => {
   title.scrollIntoView({ block: "start" })
 })
 $("vovo-practical").addEventListener("click", () => {
-  selectBook("vovo", catalog.find((item) => item.id === "vovo-bolo-betania"))
+  selectBook(
+    "vovo",
+    catalog.find((item) => item.id === "vovo-bolo-betania"),
+  )
 })
 
 // Salva antes de alterar a tela: se faltar espaço, o formulário permanece preenchido.
@@ -302,16 +358,21 @@ function saveLibrary(next, errorId) {
     library = next
     return true
   } catch {
-    $(errorId).textContent = "Não foi possível salvar neste navegador. Seu formulário foi mantido; verifique o espaço e a permissão de armazenamento e tente novamente."
+    $(errorId).textContent =
+      "Não foi possível salvar neste navegador. Seu formulário foi mantido; verifique o espaço e a permissão de armazenamento e tente novamente."
     return false
   }
 }
 for (const button of document.querySelectorAll("[data-close]"))
   button.addEventListener("click", () => $(button.dataset.close).close())
-for (const field of document.querySelectorAll("dialog [required]:not(select)")) {
-  field.addEventListener("input", () => field.setCustomValidity(
-    field.value.trim() ? "" : "Preencha este campo antes de continuar.",
-  ))
+for (const field of document.querySelectorAll(
+  "dialog [required]:not(select)",
+)) {
+  field.addEventListener("input", () =>
+    field.setCustomValidity(
+      field.value.trim() ? "" : "Preencha este campo antes de continuar.",
+    ),
+  )
 }
 $("add-book").addEventListener("click", () => {
   $("book-form").reset()
@@ -323,23 +384,32 @@ $("book-form").addEventListener("submit", (event) => {
   event.preventDefault()
   const name = $("book-name").value.trim()
   if (!name) return
-  if (allBooks().some((book) => normalize(book.title.trim()) === normalize(name))) {
-    $("book-error").textContent = "Já existe um livro com esse nome. Escolha outro nome."
+  if (
+    allBooks().some((book) => normalize(book.title.trim()) === normalize(name))
+  ) {
+    $("book-error").textContent =
+      "Já existe um livro com esse nome. Escolha outro nome."
     return
   }
   const book = { id: `livro-${crypto.randomUUID()}`, title: name }
-  if (!saveLibrary({ ...library, books: [...library.books, book] }, "book-error")) return
+  if (
+    !saveLibrary({ ...library, books: [...library.books, book] }, "book-error")
+  )
+    return
   $("book-dialog").close()
   selectBook(book.id)
-  $("library-status").textContent = `Livro “${name}” criado. Agora você pode adicionar a primeira receita.`
+  $("library-status").textContent =
+    `Livro “${name}” criado. Agora você pode adicionar a primeira receita.`
   $("empty-book").querySelector("h2").focus()
 })
 $("add-recipe").addEventListener("click", () => {
   $("recipe-form").reset()
-  for (const field of $("recipe-form").querySelectorAll("[required]")) field.setCustomValidity("")
+  for (const field of $("recipe-form").querySelectorAll("[required]"))
+    field.setCustomValidity("")
   $("recipe-error").textContent = ""
   $("recipe-book").replaceChildren()
-  for (const book of allBooks()) $("recipe-book").append(new Option(book.title, book.id))
+  for (const book of allBooks())
+    $("recipe-book").append(new Option(book.title, book.id))
   $("recipe-book").value = selectedBook || kitchenRecipe?.bookId || "vovo"
   $("recipe-dialog").showModal()
   $("new-title").focus()
@@ -348,24 +418,42 @@ $("recipe-form").addEventListener("submit", (event) => {
   event.preventDefault()
   const values = new FormData(event.currentTarget)
   const value = (name) => values.get(name).trim()
-  const lines = (name, kind) => value(name).split(/\r?\n/).map((text) => text.trim())
-    .filter(Boolean).map((text) => ({ kind, text }))
+  const lines = (name, kind) =>
+    value(name)
+      .split(/\r?\n/)
+      .map((text) => text.trim())
+      .filter(Boolean)
+      .map((text) => ({ kind, text }))
   if (!value("title") || !value("ingredients") || !value("steps")) return
   const recipe = {
-    id: `receita-${crypto.randomUUID()}`, bookId: value("bookId"), source: "custom",
-    title: value("title"), category: value("category") || "Receitas da casa",
+    id: `receita-${crypto.randomUUID()}`,
+    bookId: value("bookId"),
+    source: "custom",
+    title: value("title"),
+    category: value("category") || "Receitas da casa",
     practical: {
-      serving: value("serving") || "Não informado", prep: value("prep") || "Não informado",
-      parts: [...lines("ingredients", "ingredient"), ...lines("steps", "step"),
-        ...(value("notes") ? [{ kind: "note", text: value("notes") }] : [])],
+      serving: value("serving") || "Não informado",
+      prep: value("prep") || "Não informado",
+      parts: [
+        ...lines("ingredients", "ingredient"),
+        ...lines("steps", "step"),
+        ...(value("notes") ? [{ kind: "note", text: value("notes") }] : []),
+      ],
     },
   }
   if (!allBooks().some((book) => book.id === recipe.bookId)) return
-  if (!saveLibrary({ ...library, recipes: [...library.recipes, recipe] }, "recipe-error")) return
+  if (
+    !saveLibrary(
+      { ...library, recipes: [...library.recipes, recipe] },
+      "recipe-error",
+    )
+  )
+    return
   catalog.push(indexRecipe(recipe))
   $("recipe-dialog").close()
   selectBook(recipe.bookId, catalog[catalog.length - 1])
-  $("library-status").textContent = `Receita “${recipe.title}” salva. Já pode começar o preparo!`
+  $("library-status").textContent =
+    `Receita “${recipe.title}” salva. Já pode começar o preparo!`
   $("cook-reader").focus()
 })
 
@@ -378,8 +466,7 @@ function filteredRecipes() {
     (item) =>
       (!selectedBook || item.bookId === selectedBook) &&
       (category === "" || item.category === category) &&
-      (!$("favorites-only").checked ||
-        saved.favorites.includes(item.id)) &&
+      (!$("favorites-only").checked || saved.favorites.includes(item.id)) &&
       words.every((word) =>
         item.search.some((token) => token.startsWith(word)),
       ),
@@ -392,10 +479,7 @@ function renderCatalog() {
   $("catalog-list").replaceChildren()
   for (const item of found) {
     const button = makeButton("", "catalog-recipe")
-    button.setAttribute(
-      "aria-current",
-      String(item.id === kitchenRecipe?.id),
-    )
+    button.setAttribute("aria-current", String(item.id === kitchenRecipe?.id))
     const name = document.createElement("strong")
     name.textContent = clean(item.title)
     const detail = document.createElement("span")
@@ -407,9 +491,10 @@ function renderCatalog() {
   if (!found.length) {
     const p = document.createElement("p")
     p.className = "empty-results"
-    p.textContent = selectedBook && !catalog.some((item) => item.bookId === selectedBook)
-      ? "Nenhuma receita neste livro ainda."
-      : "Nenhuma receita encontrada. Tente outro termo ou retire um filtro."
+    p.textContent =
+      selectedBook && !catalog.some((item) => item.bookId === selectedBook)
+        ? "Nenhuma receita neste livro ainda."
+        : "Nenhuma receita encontrada. Tente outro termo ou retire um filtro."
     $("catalog-list").append(p)
   }
 }
@@ -419,9 +504,7 @@ $("favorites-only").addEventListener("change", renderCatalog)
 
 function updateFavorite() {
   const favorite = saved.favorites.includes(kitchenRecipe.id)
-  $("favorite-button").textContent = favorite
-    ? "★ Favorita"
-    : "☆ Favoritar"
+  $("favorite-button").textContent = favorite ? "★ Favorita" : "☆ Favoritar"
   $("favorite-button").setAttribute("aria-pressed", String(favorite))
 }
 $("favorite-button").addEventListener("click", () => {
