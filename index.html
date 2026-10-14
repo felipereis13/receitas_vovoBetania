@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Receitas da vovó · Feitas com carinho</title>
+    <meta
+      name="description"
+      content="Um caderno de receitas cheio de carinho: escolha, separe os ingredientes e cozinhe no seu ritmo."
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23183c31'/%3E%3Cpath d='M8 7h16v18H8zM8 14h16M12 10v2M12 18v4' fill='none' stroke='%23eab958' stroke-width='2'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <a href="#cook-reader" class="skip">Ir para as receitas</a>
+    <header>
+      <div>
+        <p class="brand">O CADERNO DA VOVÓ BETÂNIA</p>
+        <h1>Receitas feitas com carinho<span>.</span></h1>
+        <p id="collection-author">Escolha uma receita e sinta-se em casa.</p>
+      </div>
+      <span class="offline"
+        >Sempre por perto<br /><strong>Funciona sem internet</strong></span
+      >
+    </header>
+    <nav class="mode-nav" aria-label="Modo de consulta">
+      <button type="button" id="practical-mode" aria-pressed="true">
+        Todas as receitas</button
+      ><button type="button" id="book-mode" aria-pressed="false">
+        Receitas com itens da geladeira</button
+      ><button type="button" id="vovo-mode" aria-pressed="false">
+        Caderno da vovó
+      </button>
+    </nav>
+    <main id="conteudo">
+      <section id="practical-view" aria-label="Cozinha prática">
+        <div class="finder">
+          <label class="search-field" for="search"
+            >O que vamos preparar?<input
+              id="search"
+              type="search"
+              placeholder="Busque uma receita ou ingrediente…"
+              autocomplete="off" /></label
+          ><label for="ingredient-filter"
+            >Ingrediente<select id="ingredient-filter">
+              <option value="">Todos os ingredientes</option>
+            </select></label
+          ><label class="favorite-filter"
+            ><input type="checkbox" id="favorites-only" /> Só favoritas</label
+          >
+        </div>
+        <div class="kitchen-layout">
+          <aside class="catalog">
+            <p id="result-count" role="status"></p>
+            <div id="catalog-list"></div>
+          </aside>
+          <article class="cook-reader" id="cook-reader" tabindex="-1">
+            <div class="cook-header">
+              <div>
+                <p class="eyebrow" id="cook-category"></p>
+                <h2 id="cook-title"></h2>
+                <div class="recipe-meta">
+                  <span id="cook-serving"></span><span id="cook-prep"></span>
+                </div>
+              </div>
+              <button type="button" id="favorite-button" aria-pressed="false">
+                ☆ Favoritar
+              </button>
+            </div>
+            <img
+              id="cook-cake-image"
+              class="cake-photo"
+              alt="Bolo Betânia com massa clara e de chocolate, com fatias cortadas"
+              width="1280"
+              height="720"
+              hidden
+            />
+            <div class="cook-actions">
+              <button type="button" id="open-original">
+                Ver páginas originais</button
+              ><button type="button" id="reset-checks">Limpar marcações</button
+              ><label for="cook-font"
+                >Tamanho da letra
+                <select id="cook-font">
+                  <option value="1.125rem">Normal</option>
+                  <option value="1.25rem">Grande</option>
+                  <option value="1.5rem">Maior</option>
+                </select></label
+              >
+            </div>
+            <div class="timer">
+              <div>
+                <strong>De olho no tempo</strong>
+                <p id="timer-recipe">Escolha o tempo que deseja contar.</p>
+              </div>
+              <label for="timer-minutes"
+                >Minutos
+                <input
+                  id="timer-minutes"
+                  type="number"
+                  min="1"
+                  max="1440"
+                  value="10"
+                  step="1" /></label
+              ><output id="timer-display" aria-live="off">10:00</output
+              ><button type="button" id="timer-toggle">Iniciar</button
+              ><button type="button" id="timer-reset">Zerar</button
+              ><span id="timer-status" role="status"></span>
+            </div>
+            <p class="cook-help" id="cook-help">
+              Marque os ingredientes separados e as etapas concluídas. O texto
+              abaixo foi extraído do PDF; as quantidades e instruções foram
+              mantidas.
+            </p>
+            <p id="check-progress" role="status"></p>
+            <details class="full-recipe" open>
+              <summary>Ingredientes e receita completa</summary>
+              <div id="cook-parts"></div>
+            </details>
+            <details class="timeline-panel">
+              <summary>Acompanhar o preparo passo a passo</summary>
+              <p class="timeline-intro">
+                Etapas na ordem apresentada na receita. Quando houver preparos
+                paralelos ou uma condição para continuar, siga as orientações de
+                cada etapa.
+              </p>
+              <p id="timeline-progress" role="status"></p>
+              <ol id="prep-timeline"></ol>
+            </details>
+            <p class="storage-note" id="storage-note">
+              Favoritas e marcações ficam salvas neste navegador. Mantenha o app
+              aberto durante o temporizador.
+            </p>
+          </article>
+        </div>
+      </section>
+      <section id="vovo-view" hidden aria-labelledby="vovo-heading">
+        <div class="vovo-layout">
+          <aside class="vovo-index">
+            <h2 id="vovo-heading">Vovó Betânia</h2>
+            <p>1 receita</p>
+            <a href="#bolo-betania" aria-current="true">Bolo Betânia</a>
+          </aside>
+          <article id="bolo-betania" class="vovo-recipe" tabindex="-1">
+            <p class="eyebrow">CADERNO DA VOVÓ</p>
+            <h2>Bolo Betânia</h2>
+            <img
+              id="betania-cake-image"
+              class="cake-photo"
+              src="imagens/bolo-betania.png"
+              alt="Bolo Betânia com massa clara e de chocolate, com fatias cortadas"
+              width="1280"
+              height="720"
+            />
+            <button type="button" id="vovo-practical">
+              Preparar na Cozinha prática
+            </button>
+            <p class="vovo-status">Transcrição da foto — para conferência.</p>
+            <h3>Ingredientes</h3>
+            <ul>
+              <li>4 ou 5 ovos</li>
+              <li>200 gs margarina Qualy (manteiga)</li>
+              <li>1 ½ xícara açúcar</li>
+              <li>3 xícaras farinha de trigo (peneirado)</li>
+              <li>1 xícara leite</li>
+              <li>1 pitada de sal</li>
+              <li>1 colher de fermento</li>
+            </ul>
+            <h3>Modo de preparo</h3>
+            <p>
+              Na batedeira coloca os ovos e liga até dobrar de volume, depois
+              coloca a margarina e o açúcar e continua batendo até ficar um
+              creme claro.
+            </p>
+            <p>
+              Desliga a batedeira e vai colocando o trigo e alternando com o
+              leite.
+            </p>
+            <p>Por último o sal e o fermento.</p>
+            <h3>Obs:</h3>
+            <p>Se quiser de chocolate mistura com o trigo.</p>
+            <aside class="vovo-note">
+              <strong>Conferência da transcrição</strong>
+              <p>
+                A anotação entre parênteses após a farinha foi lida como
+                “peneirado”.
+              </p>
+              <p>
+                A receita não informa o tamanho da colher de fermento, a
+                quantidade de chocolate, a temperatura nem o tempo de forno.
+              </p>
+            </aside>
+            <details class="vovo-photo" id="vovo-photo">
+              <summary>Conferir a foto original</summary>
+              <img
+                src="imagens/receita-manuscrita.jpg"
+                alt="Foto da receita manuscrita Bolo Betânia"
+                loading="lazy"
+                width="1152"
+                height="2048"
+              />
+            </details>
+          </article>
+        </div>
+      </section>
+
+      <div id="book-view" hidden>
+        <nav class="contents" aria-label="Sumário">
+          <p class="contents-label">SUMÁRIO</p>
+          <div
+            id="tabs"
+            class="tabs"
+            role="tablist"
+            aria-label="Ingredientes"
+          ></div>
+        </nav>
+        <div id="chapter-panel" class="workspace" role="tabpanel" tabindex="0">
+          <aside class="recipe-index" aria-label="Receitas do ingrediente">
+            <div class="index-heading">
+              <h2 id="chapter-title"></h2>
+              <span id="recipe-count"></span>
+            </div>
+            <div id="recipes" class="recipes"></div>
+          </aside>
+          <section class="reader" aria-labelledby="recipe-title">
+            <div class="reader-top">
+              <div>
+                <h2 id="recipe-title"></h2>
+                <p class="page-range" id="page-range"></p>
+              </div>
+              <label class="zoom-label" for="zoom"
+                >Ampliar
+                <select id="zoom">
+                  <option value="1">100%</option>
+                  <option value="1.25">125%</option>
+                  <option value="1.5">150%</option>
+                  <option value="2">200%</option>
+                  <option value="2.5">250%</option>
+                  <option value="3">300%</option>
+                </select></label
+              >
+            </div>
+            <div class="page-scroll">
+              <div id="pages" class="pages" aria-busy="true"></div>
+            </div>
+            <div class="pager">
+              <button type="button" id="previous">← Receita anterior</button
+              ><button type="button" id="next">Próxima receita →</button>
+            </div>
+            <p class="source-note">
+              Páginas originais do PDF enviado, com a escrita e as imagens
+              preservadas.
+            </p>
+          </section>
+        </div>
+      </div>
+    </main>
+    <noscript
+      >Ative o JavaScript do navegador para consultar as receitas.</noscript
+    >
+
+    <footer>
+      Receitas da vovó <span aria-hidden="true">♥</span> Feito para guardar bons
+      momentos.
+    </footer>
+    <script src="dados.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
